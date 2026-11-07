@@ -64,8 +64,7 @@ async fn issue(context: &SimpleContext, request: StoreLicenseTokenRequest) -> Re
     let device_response = xodus::api::live::exchange_device_token(&context.client, device.clone(),
         client_id.into(), "www.microsoft.com".into(), Some(soap::PolicyReference::mbi_ssl()))
         .await.map_err(|_| FAIL)?;
-    if device_response.token_type != "urn:passport:compact" { return Err(FAIL) }
-    let Token::Compact(device_token) = Token::try_from(device_response).map_err(|_| FAIL)? else { return Err(FAIL) };
+    let device_token = device_ticket(device_response)?;
     let user_response = xodus::api::live::exchange_user_token(&context.client, user_sts,
         account.username, device, None, Some("Silent".into()), client_id.into(),
         &[("www.microsoft.com".into(), Some(soap::PolicyReference::mbi_ssl()))])
@@ -105,9 +104,51 @@ fn user_ticket_type(token_type: &str) -> bool {
     matches!(token_type, "urn:passport:compact" | "urn:passport:delegationcompact")
 }
 
+fn device_ticket(response: soap::RequestSecurityTokenResponse) -> Result<String, u32> {
+    // Like content licensing, use the shared decoder for compact and
+    // delegation-compact representations, then require a Compact token.
+    match Token::try_from(response).map_err(|_| FAIL)? {
+        Token::Compact(ticket) => Ok(ticket),
+        _ => Err(FAIL),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn device_response(kind: &str, payload: Option<&str>) -> soap::RequestSecurityTokenResponse {
+        soap::RequestSecurityTokenResponse {
+            token_type: kind.into(),
+            applies_to: soap::AppliesTo { endpoint_reference: soap::EndpointReference { address: "synthetic.invalid".into() } },
+            lifetime: soap::Timestamp { id: None, created: "2000-01-01T00:00:00Z".into(), expires: "2099-01-01T00:00:00Z".into() },
+            requested_security_token: soap::RequestedSecurityToken {
+                encrypted_data: None,
+                binary_security_token: payload.map(|value| soap::BinarySecurityTokenRes { id: "fixture".into(), value: value.into(), value_type: None }),
+            },
+            requested_proof_token: None,
+        }
+    }
+
+    #[test]
+    fn store_device_ticket_accepts_compact_and_delegation_representations() {
+        assert_eq!(device_ticket(device_response("urn:passport:compact", Some("synthetic-compact"))).unwrap(), "synthetic-compact");
+        assert_eq!(device_ticket(device_response("urn:passport:delegationcompact", Some("synthetic-delegation"))).unwrap(), "d=synthetic-delegation");
+        let jwe = "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..aXY.Y2lwaGVy_dGV4dA.dGFn";
+        assert_eq!(device_ticket(device_response("urn:passport:delegationcompact", Some(jwe))).unwrap(), format!("t={jwe}"));
+    }
+
+    #[test]
+    fn store_device_ticket_rejects_legacy_unknown_and_missing_payloads() {
+        let mut legacy = device_response("urn:passport:legacy", None);
+        legacy.requested_security_token.encrypted_data = Some(soap::EncryptedData::devicesoftware("synthetic-ciphertext".into()));
+        assert!(matches!(Token::try_from(legacy.clone()).unwrap(), Token::Legacy(_)));
+        assert_eq!(device_ticket(legacy), Err(FAIL));
+        assert_eq!(device_ticket(device_response("unsupported-type", Some("synthetic"))), Err(FAIL));
+        for kind in ["urn:passport:compact", "urn:passport:delegationcompact"] {
+            assert_eq!(device_ticket(device_response(kind, None)), Err(FAIL));
+        }
+    }
 
     #[test]
     fn store_license_accepts_delegation_compact_user_tickets() {
