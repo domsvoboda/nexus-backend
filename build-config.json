@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "version": "0.2.15",
+  "version": "0.2.16",
   "repository": "domsvoboda/nexus-backend",
   "upstream": {
     "repository": "https://github.com/xodus-gaming/xodus.git",
