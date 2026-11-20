@@ -14,6 +14,18 @@
       "approvedBy": "domsvoboda",
       "realGameTest": false,
       "evidence": "Explicit production authorization on 2026-11-09 to build the launcher and backend anew and publish the reviewed 0.5 release. Successful main backend workflow 42666289064 built and tested the pinned e7884a27 source on Ubuntu 22.04 for x86_64 and aarch64, then produced one original merged candidate. Its exact candidate manifest, ten files, all SHA256 values, four binary/source SHA512 checksums, both schema-2 manifests, source/version/recipe bindings, licenses and ELF architectures were verified. The package compatibility is linux-run-v25 and authUi is electron; both binaries declare glibc 2.35 and their maximum imported GLIBC symbol version is 2.34. One isolated x86_64 xodus-cli --help check exited zero with the required capabilities. No service, account, authentication or real-game execution of these newly built backend binaries is claimed. Independent post-build metadata QA passed all 27 existing Node CI contract tests; only the release display title and its regression changed, with compiled source, Cargo lock and build configuration unchanged. Publish only these original CI assets, including corresponding source, with the exact digest-bound approved English notes. The launcher download/runtime-choice follow-up is independent of these unchanged backend build inputs. No rebuild or automatic local activation is authorized by this record."
+    },
+    {
+      "kind": "backend",
+      "repository": "domsvoboda/nexus-backend",
+      "runId": "44709101489",
+      "commit": "9b55c2d349fc943de02ac10f49c4c9012e2be9d0",
+      "manifestSha256": "72db5e70b323ae581433d669798ba8c643528cc009b5cb73579f661419e32f70",
+      "notesSha256": "563654a2170cb8065441c22c5c7b15b6d0b292b6741ecc1bf159c9bb1ad0729b",
+      "approved": true,
+      "approvedBy": "domsvoboda",
+      "realGameTest": true,
+      "evidence": "Explicit maintainer request to publish backend 0.2.16 on 2026-11-20. Main source checks and the explicit Ubuntu 22.04 candidate build and native tests passed for x86_64 and aarch64. The original merged candidate's ten assets, SHA-256 and binary/source SHA-512 checksums, package provenance, member hashes and ELF architectures were verified. The published launcher install code staged the exact x86_64 candidate in the isolated test profile. Age of Empires II: Definitive Edition 101.103.57257.0 used this backend and the Standard runtime with a genuine online Store content license and successful package registration, reached its main menu without the tampering warning, and exited normally; the maintainer confirmed the game worked on this run. No independent skirmish, multiplayer, CachyOS or ARM64 game result is claimed. Publish these original CI bytes and the digest-bound notes without rebuilding or activating in the ordinary profile."
     }
   ]
 }
