@@ -41,15 +41,19 @@ test('account-free gates, keyring serialization and ignored bandwidth fixtures r
     assert.ok(plan.some(args=>args[1]==='xodus'&&args[2]===filter&&args.includes('--test-threads=1')));
   assert.ok(plan.some(args=>args[1]==='msixvc'&&args[2]==='streaming_bandwidth_'&&args.includes('--ignored')&&args.includes('--test-threads=1')));
 });
-test('only main builds candidates; source-only pushes cannot cancel a candidate',()=>{
+test('only an explicit main dispatch builds candidates; source pushes run checks only',()=>{
   const workflow=fs.readFileSync(new URL('.github/workflows/backend.yml',root),'utf8');
-  assert.match(workflow,/branches: \[main\]/);
-  assert.match(workflow,/if: github.ref == 'refs\/heads\/main' && !contains\(github.event.head_commit.message, '\[source-only\]'\)/);
-  assert.match(workflow,/group: backend-\$\{\{ github.event_name == 'push' && contains\(github.event.head_commit.message, '\[source-only\]'\) && github.run_id \|\| github.ref \}\}/);
-  assert.doesNotMatch(workflow,/pull_request:|webkit|libgtk|libsoup/);
+  assert.match(workflow,/^on:\n(?: {2}.*\n)*? {2}workflow_dispatch:\n/m);
+  assert.doesNotMatch(workflow,/^ {2}push:/m);
+  assert.doesNotMatch(workflow,/pull_request:/);
+  assert.match(workflow,/if: github\.ref == 'refs\/heads\/main'\n/);
+  assert.match(workflow,/group: backend-\$\{\{ github\.ref \}\}/);
+  assert.doesNotMatch(workflow,/github\.event\./);
+  assert.doesNotMatch(workflow,/webkit|libgtk|libsoup/);
   const source=fs.readFileSync(new URL('.github/workflows/checks.yml',root),'utf8');
-  assert.match(source,/node scripts\/test-backend.mjs/);
-  assert.doesNotMatch(source,/scripts\/build-backend.mjs|upload-artifact/);
+  assert.match(source,/branches: \[develop, main\]/);
+  assert.match(source,/node scripts\/test-backend\.mjs/);
+  assert.doesNotMatch(source,/scripts\/build-backend\.mjs|upload-artifact/);
   const release=fs.readFileSync(new URL('.github/workflows/release.yml',root),'utf8');
   assert.match(release,/if: github.ref == 'refs\/heads\/main' && inputs.approve_release/);
   assert.doesNotMatch(release,/\n  push:|\n  pull_request:|build-backend/);
