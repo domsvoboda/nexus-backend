@@ -1,22 +1,20 @@
 name: Nexus backend build
 
 on:
-  push:
-    branches: [main]
+  # Native candidates are built only by an explicit main-branch dispatch.
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  # A source-only push skips all builds, so it must not cancel an active manual
-  # main candidate. Actual main builds still serialize and supersede old builds.
-  group: backend-${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[source-only]') && github.run_id || github.ref }}
+  # Builds serialize on main; a newer dispatch supersedes an older one.
+  group: backend-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[source-only]')
+    if: github.ref == 'refs/heads/main'
     strategy:
       fail-fast: false
       matrix:
